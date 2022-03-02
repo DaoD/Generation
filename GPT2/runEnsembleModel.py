@@ -345,7 +345,7 @@ def encoding_text():
 
 if __name__ == '__main__':
     set_seed(args.seed)
-    # train_model()
-    test_model_generation()
+    train_model()
+    # test_model_generation()
     # test_model_retrieval()
     # encoding_text()
