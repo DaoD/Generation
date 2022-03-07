@@ -40,11 +40,11 @@ class GARDataset(Dataset):
         r_segment = [1] * len(r_tokens)
         r_tokens = r_tokens[-self._max_rep_len:]
 
-        next_utterance = self._tokenizer.tokenize(line[5])
         if line[5] == "NA":
             has_next = 0
         else:
             has_next = 1
+        next_utterance = self._tokenizer.tokenize(line[5])
         next_utterance = next_utterance[:(self._max_rep_len - 2)]
         
         label = float(line[2])
@@ -63,25 +63,27 @@ class GARDataset(Dataset):
                 document_tokens.extend(s_tokens)
             document_tokens = document_tokens[:self._max_doc_len]
             seq_tokens = [self._tokenizer.bos_token] + document_tokens + context_tokens + [self._tokenizer.sep_token] + r_tokens + [self._tokenizer.sep_token]
+            eos_position = len(seq_tokens) - 1
             attention_mask = [1] * len(seq_tokens)
             assert len(seq_tokens) == len(attention_mask) and len(seq_tokens) <= self._max_seq_len
             while len(seq_tokens) < self._max_seq_len:
                 seq_tokens.append(self._tokenizer.pad_token)
                 attention_mask.append(0)
+            eos_mask = [0] * len(seq_tokens)
+            eos_mask[eos_position] = 1
             seq_tokens = self._tokenizer.convert_tokens_to_ids(seq_tokens)
             next_utterance = [self._tokenizer.bos_token] + next_utterance + [self._tokenizer.eos_token]
             next_utterance_ids = self._tokenizer.convert_tokens_to_ids(next_utterance)
             assert len(next_utterance_ids) <= self._max_rep_len
             while len(next_utterance_ids) < self._max_rep_len:
                 next_utterance_ids.append(-100)
-            head_token = [self._tokenizer.eos_token_id]
             batch = {
                 "sequence_input_ids": np.asarray(seq_tokens),
                 "sequence_attention_mask": np.asarray(attention_mask),
+                "eos_position": np.asarray(eos_mask),
                 "next_utterance_ids": np.asarray(next_utterance_ids, dtype=np.int64),
                 "labels": label,
                 "has_next_label": has_next,
-                "head_token": np.asarray(head_token),
             }
         else:
             documents = line[3].split("|")

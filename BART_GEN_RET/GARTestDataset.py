@@ -56,18 +56,20 @@ class GARTestDataset(Dataset):
                 document_tokens.extend(s_tokens)
             document_tokens = document_tokens[:self._max_doc_len]
             seq_tokens = [self._tokenizer.bos_token] + document_tokens + context_tokens + [self._tokenizer.sep_token] + r_tokens + [self._tokenizer.sep_token]
+            eos_position = len(seq_tokens) - 1
             attention_mask = [1] * len(seq_tokens)
             assert len(seq_tokens) == len(attention_mask) and len(seq_tokens) <= self._max_seq_len
             while len(seq_tokens) < self._max_seq_len:
                 seq_tokens.append(self._tokenizer.pad_token)
                 attention_mask.append(0)
+            eos_mask = [0] * len(seq_tokens)
+            eos_mask[eos_position] = 1
             seq_tokens = self._tokenizer.convert_tokens_to_ids(seq_tokens)
-            head_token = [self._tokenizer.eos_token_id]
             batch = {
                 "sequence_input_ids": np.asarray(seq_tokens),
                 "sequence_attention_mask": np.asarray(attention_mask),
+                "eos_position": np.asarray(eos_mask),
                 "labels": label,
-                "head_token": np.asarray(head_token),
             }
         else:
             documents = line[3].split("|")
